@@ -1,0 +1,106 @@
+<html>
+<script>
+    AUTOBAHN_DEBUG = true;
+</script>
+<script src="/static/autobahn.min.js"></script>
+
+<script
+			  src="https://code.jquery.com/jquery-3.3.1.min.js"
+			  integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8="
+			  crossorigin="anonymous">
+</script>
+<script>
+
+var connection = new autobahn.Connection({url: 'ws://lemonchat.localhost:9000/', realm: 'realm1'});
+var url = "http://lemonchat.localhost";
+
+$(function() {
+
+    connection.onopen = function (session) {
+        function conversationlist(args) {
+            $.get('/conversationlist?user_id=${user_id}', function(data) {
+                // re-populate conversation list.
+                $("#conversations").empty();
+                console.log(data);
+                $(data).each(function(index, value) {
+                    console.log(value);
+                    $('#conversations').append(
+                        $('<li>').append(
+                            $('<a>').attr('href','/conversation/').append(
+                                $('<span>').attr('class', 'tab').append(value['subject'])
+                    )));   
+                });
+            });
+        }
+        session.subscribe('lemonchat.${user_id}.conversations', conversationlist);
+        
+        $("#newconversationbutton").on('click', function(a) {
+            data = {user_id: "${user_id}", subject: $("#subject").val()};
+            $.post(url+"/newconversation", data=data, function() {
+                console.log("Posted.");
+            });    
+        });
+
+        console.log("Connection opened.");
+    }
+
+    connection.onclose = function (reason, details) {
+        console.log("Connection closed: "+reason);
+        setTimeout(connection.open, 15000);
+    }
+
+    connection.open();
+});    
+
+
+</script>
+Conversations:
+<ul id="conversations">
+</ul>
+<div class="mb-list">
+    <div class="mbl-messages c-overflow">
+        <div class="mblm-item mblm-item-left">
+            <div>
+                Hello ${user_id}. How can we help you today?
+            </div>
+            ## <small>5:47 PM</small>
+        </div>
+
+
+        <!-- <div class="mblm-item mblm-item-right">
+            <div>
+                Cras justo odio, dapibus ac facilisis in, egestas eget quamurabitur blandit tempus porttitor
+            </div>
+            <small>5:49 PM</small>
+        </div>
+        <div class="mblm-item mblm-item-right">
+            <div>
+                blandit tempus
+            </div>
+            <small>5:55 PM</small>
+        </div>
+        <div class="mblm-item mblm-item-left">
+            <div>
+                Morbi leo risus, porta ac consectetur ac, vestibulum at eros. Aenean eu leo quam. Pellentesque ornare sem lacinia quam venenatis vestibulum. Praesent commodo cursus magna, vel scelerisque nisl consectetur et. Donec ullamcorper nulla non metus auctor fringilla. Cras justo odio, dapibus ac facilisis in, egestas eget quam. Nullam quis risus eget urna mollis ornare vel eu leo.
+            </div>
+            <small>6:10 PM</small>
+        </div>
+        <div class="mblm-item mblm-item-left">
+            <div>
+                Donec id elit non mi porta gravida at eget metus
+            </div>
+            <small>6:11 PM</small>
+        </div>
+        <div class="mblm-item mblm-item-right">
+            <div>
+                Cras mattis consectetur purus sit amet fermentum. Cras justo odio, dapibus ac facilisis in, egestas eget quam. Integer posuere erat a ante venenatis dapibus posuere velit aliquet. Sed posuere consectetur est at lobortis. Aenean lacinia bibendum nulla sed consectetur. Aenean eu leo quam. Pellentesque ornare sem lacinia quam venenatis vestibulum.                                    </div>
+            <small>6:15 PM</small>
+        </div> -->
+    </div>
+
+    <div class="mbl-compose">
+        <textarea id='subject' placeholder="Subject of new conversation..."></textarea>
+        <button id='newconversationbutton'><i class="zmdi zmdi-mail-send">New Conversation</i></button>
+    </div>
+</div>
+</html>
