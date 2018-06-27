@@ -48,9 +48,11 @@ class Root(object):
         return template.render(user_id=user_id)
 
     @cherrypy.expose
+    @cherrypy.tools.json_out()
     def newconversation(self, user_id, subject):
-        r.table('conversation').insert([{'user_id': user_id, 'subject': subject, 'stampdate': arrow.utcnow().datetime}]).run(db.c())
+        result = r.table('conversation').insert([{'user_id': user_id, 'subject': subject, 'stampdate': arrow.utcnow().datetime}]).run(db.c())
         wamp.publish('%s.conversations' % (user_id,))
+        return result
 
     @cherrypy.expose
     @cherrypy.tools.json_out()
@@ -58,6 +60,19 @@ class Root(object):
         result = list(r.table('conversation').filter({'user_id': user_id}).order_by('stampdate').run(db.c()))
         for row in result:
             row['prettydate'] = arrow.get(row.get('stampdate')).humanize()
+        return result
+
+    @cherrypy.expose
+    @cherrypy.tools.json_out()
+    def conversationchange(self, conversation_id): 
+        result = list(r.table('message').filter({'conversation_id': conversation_id}).order_by('stampdate').run(db.c()))
+        return result
+
+    @cherrypy.expose
+    @cherrypy.tools.json_out()
+    def newmessage(self, user_id, conversation_id, newmessage):
+        result = r.table('message').insert([{'user_id': user_id, 'conversation_id': conversation_id, 'message': newmessage, 'stampdate': arrow.utcnow().datetime}]).run(db.c())
+        wamp.publish('%s.conversation.%s' % (user_id, conversation_id))
         return result
 
 
