@@ -46,7 +46,9 @@ $(function() {
         session.subscribe('lemonchat.${user_id}.conversations', conversationlist);
         conversationlist();
 
-        function conversationchange(conversation_id) {
+        var activeconversation = 0;
+
+        function conversationrefresh(conversation_id) {
             ## Change conversation view. 
             $("#conversationarea").hide()
             $("#conversationarea").empty();
@@ -71,9 +73,16 @@ $(function() {
                     });
                 });
             });
+            $("#conversationarea").show();
+        }
 
-            $("#conversationarea").slideDown();
-            
+        function conversationchange(conversation_id) {
+            if (activeconversation) {
+                session.unsubscribe(activeconversation);
+                activeconversation = 0;
+            }
+            //conversationrefresh(conversation_id);
+            activeconversation = session.subscribe('lemonchat.${user_id}.conversation.'+conversation_id, conversationrefresh(conversation_id));
         }
 
 
