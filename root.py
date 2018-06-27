@@ -1,16 +1,44 @@
 # import sys
 # import os
+import arrow
+import datetime
+import json
 import cherrypy
 import mako.template
 import rethinkdb as r
 import wamp
+import db
 
 # sys.stdout = sys.stderr
 # currentdir = os.path.dirname(os.path.realpath(__file__))
 # sys.path.append(currentdir)
 
 # cherrypy.config.update({'environment': 'test_suite'})
+
+
+class _JSONEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, datetime.date):
+            return obj.isoformat()
+        return super().default(obj)
+
+    def iterencode(self, value):
+        # Adapted from cherrypy/_cpcompat.py
+        for chunk in super().iterencode(value):
+            yield chunk.encode("utf-8")
+
+
+json_encoder = _JSONEncoder()
+
+
+def json_handler(*args, **kwargs):
+    # Adapted from cherrypy/lib/jsontools.py
+    value = cherrypy.serving.request._json_inner_handler(*args, **kwargs)
+    return json_encoder.iterencode(value)
+
+
 cherrypy.config.update({'server.socket_port': 8081})
+cherrypy.config['tools.json_out.handler'] = json_handler
 
 
 class Root(object):
@@ -21,16 +49,17 @@ class Root(object):
 
     @cherrypy.expose
     def newconversation(self, user_id, subject):
-        conn = r.connect("localhost", 32769, db='lemonchat').repl()
-        r.table('conversation').insert([{'user_id': user_id, 'subject': subject}]).run(conn)
+        r.table('conversation').insert([{'user_id': user_id, 'subject': subject, 'stampdate': arrow.utcnow().datetime}]).run(db.c())
         wamp.publish('%s.conversations' % (user_id,))
 
     @cherrypy.expose
     @cherrypy.tools.json_out()
     def conversationlist(self, user_id): 
-        conn = r.connect("localhost", 32769, db='lemonchat').repl()
-        result = list(r.table('conversation').filter({'user_id': user_id}).run(conn))
+        result = list(r.table('conversation').filter({'user_id': user_id}).order_by('stampdate').run(db.c()))
+        for row in result:
+            row['prettydate'] = arrow.get(row.get('stampdate')).humanize()
         return result
+
 
 root = Root()
 application = cherrypy.Application(root)

@@ -15,24 +15,27 @@ var connection = new autobahn.Connection({url: 'ws://lemonchat.localhost:9000/',
 var url = "http://lemonchat.localhost";
 
 $(function() {
-
     connection.onopen = function (session) {
         function conversationlist(args) {
             $.get('/conversationlist?user_id=${user_id}', function(data) {
                 // re-populate conversation list.
                 $("#conversations").empty();
                 console.log(data);
-                $(data).each(function(index, value) {
-                    console.log(value);
-                    $('#conversations').append(
-                        $('<li>').append(
-                            $('<a>').attr('href','/conversation/').append(
-                                $('<span>').attr('class', 'tab').append(value['subject'])
-                    )));   
-                });
+                if (data.length > 0) {
+                    $(data).each(function(index, value) {
+                        console.log(value);
+                        $('#conversations').append(
+                            $('<li>').append(
+                                $('<a>').attr('href','/conversation/').append(
+                                    $('<span>').attr('class', 'tab').append(value['subject'] + " (" + value['prettydate'] + ") ")
+                        )));   
+                    });
+                    $("#conversationbox").slideDown();
+                }
             });
         }
         session.subscribe('lemonchat.${user_id}.conversations', conversationlist);
+        conversationlist();
         
         $("#newconversationbutton").on('click', function(a) {
             data = {user_id: "${user_id}", subject: $("#subject").val()};
@@ -54,13 +57,16 @@ $(function() {
 
 
 </script>
-Conversations:
+<div id="conversationbox" style="display:None;">
+Existing Conversations:
 <ul id="conversations">
 </ul>
+</div>
 <div class="mb-list">
     <div class="mbl-messages c-overflow">
         <div class="mblm-item mblm-item-left">
             <div>
+                Create New Conversation: 
                 Hello ${user_id}. How can we help you today?
             </div>
             ## <small>5:47 PM</small>
