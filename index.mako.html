@@ -32,19 +32,20 @@ $(function() {
                                     $('<span>').attr('class', 'tab').append(value['subject'] + " (" + value['prettydate'] + ") ")
                         )));
 
-
                     });
                     $('.conversationchange').on('click', function(d) {
                         var conversation_id = $(this).attr('conversation_id');
                         conversationchange(conversation_id);
                     });                    
                     $("#conversationbox").slideDown();
+                    
                 }
+                
             });
         }
         session.subscribe('lemonchat.${user_id}.conversations', conversationlist);
         conversationlist();
-        
+
         function conversationchange(conversation_id) {
             ## Change conversation view. 
             $("#conversationarea").hide()
@@ -72,6 +73,7 @@ $(function() {
             });
 
             $("#conversationarea").slideDown();
+            
         }
 
 
