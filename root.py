@@ -43,21 +43,28 @@ cherrypy.config['tools.json_out.handler'] = json_handler
 
 class Root(object):
     @cherrypy.expose
-    def index(self, user_id):
+    def index(self, user_id, agent=False):
+        # @TODO If agent, then asset that user_id is actually an agent.
         template = mako.template.Template(filename="index.mako.html")
-        return template.render(user_id=user_id)
+        return template.render(user_id=user_id, agent=agent)
+
 
     @cherrypy.expose
     @cherrypy.tools.json_out()
     def newconversation(self, user_id, subject):
         result = r.table('conversation').insert([{'user_id': user_id, 'subject': subject, 'stampdate': arrow.utcnow().datetime}]).run(db.c())
-        wamp.publish('%s.conversations' % (user_id,))
-        return result
+        wamp.publish('conversations')  # @TODO a user should only listen to conversation that involve them
+
+        return result['generated_keys'][0]  # conversation_id
 
     @cherrypy.expose
     @cherrypy.tools.json_out()
-    def conversationlist(self, user_id): 
-        result = list(r.table('conversation').filter({'user_id': user_id}).order_by('stampdate').run(db.c()))
+    def conversationlist(self, user_id, agent=False):
+        agent = int(agent)
+        if agent:
+            result = list(r.table('conversation').order_by('stampdate').run(db.c()))
+        else:
+            result = list(r.table('conversation').filter({'user_id': user_id}).order_by('stampdate').run(db.c()))
         for row in result:
             row['prettydate'] = arrow.get(row.get('stampdate')).humanize()
         return result
@@ -66,14 +73,15 @@ class Root(object):
     @cherrypy.tools.json_out()
     def conversationchange(self, conversation_id): 
         result = list(r.table('message').filter({'conversation_id': conversation_id}).order_by('stampdate').run(db.c()))
+
         return result
 
     @cherrypy.expose
     @cherrypy.tools.json_out()
     def newmessage(self, user_id, conversation_id, newmessage):
         result = r.table('message').insert([{'user_id': user_id, 'conversation_id': conversation_id, 'message': newmessage, 'stampdate': arrow.utcnow().datetime}]).run(db.c())
-        wamp.publish('%s.conversation.%s' % (user_id, conversation_id))
-        return result
+        wamp.publish('conversation.%s' % (conversation_id))
+        return result['generated_keys'][0] #  message_id
 
 
 root = Root()
