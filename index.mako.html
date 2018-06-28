@@ -13,15 +13,12 @@ var url = "http://lemonchat.localhost";
 $(function() {
     connection.onopen = function (session) {
         function conversationlist(args) {
-            $.get('/conversationlist?user_id=${user_id}', function(data) {
+            $.get('/conversationlist?user_id=${user_id}&agent=${agent}', function(data) {
                 // re-populate conversation list.
                 $("#conversations").empty();
-
-                console.log(data);
                 
                 if (data.length > 0) {
                     $(data).each(function(index, value) {
-                        console.log(value);
                         $('#conversations').append(
                             $('<li>').append(
                                 $('<a class="conversationchange">').attr('conversation_id', value['id']).append(
@@ -39,7 +36,7 @@ $(function() {
                 
             });
         }
-        session.subscribe('lemonchat.${user_id}.conversations', conversationlist);
+        session.subscribe('lemonchat.conversations', conversationlist);
         conversationlist();
 
         var activeconversation = 0;
@@ -50,12 +47,10 @@ $(function() {
             $("#conversationarea").hide()
             $("#conversationarea").empty();
             $.get(url+"/conversationchange?conversation_id=" + activeconversation_id, function(data) {
-                console.log(data);
 
 
                 if (data.length > 0) {
                     $(data).each(function(index, value) {
-                        console.log(value);
                         $('#conversationarea').append("<p>"+value['message']+"</p>");
                     });                  
                 }
@@ -82,9 +77,8 @@ $(function() {
             }
             activeconversation_id = conversation_id
             conversationrefresh();
-            topic = 'lemonchat.${user_id}.conversation.'+conversation_id
+            topic = 'lemonchat.conversation.'+conversation_id
             activeconversation = session.subscribe(topic, conversationrefresh);
-            console.log(activeconversation);
             console.log("Subscribing to " + activeconversation)
         }
 
@@ -113,6 +107,7 @@ $(function() {
 Existing Conversations:
 <ul id="conversations">
 </ul>
+</div>
 Conversation Area:
 <div id="conversationarea" class="mb-list">
     <div class="mbl-messages c-overflow">    
