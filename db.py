@@ -1,8 +1,14 @@
 import rethinkdb as r
-import cherrypy
+
 
 def c():
     return r.connect("localhost", 32769, db='lemonchat').repl()
+
+
+try:
+    r.db_create("lemonchat").run(c())
+except Exception as e:
+    print(e)
 
 for table in ('conversation', 'message', 'user'):
     try:
