@@ -3,12 +3,8 @@
     AUTOBAHN_DEBUG = true;
 </script>
 <script src="/static/autobahn.min.js"></script>
+<script src="/static/jquery-3.3.1.min.js"></script>
 
-<script
-    src="https://code.jquery.com/jquery-3.3.1.min.js"
-    integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8="
-    crossorigin="anonymous">
-</script>
 <script>
 
 var connection = new autobahn.Connection({url: 'ws://lemonchat.localhost:9000/', realm: 'realm1'});
@@ -47,12 +43,13 @@ $(function() {
         conversationlist();
 
         var activeconversation = 0;
+        var activeconversation_id = 0;
 
-        function conversationrefresh(conversation_id) {
+        function conversationrefresh() {
             ## Change conversation view. 
             $("#conversationarea").hide()
             $("#conversationarea").empty();
-            $.get(url+"/conversationchange?conversation_id=" + conversation_id, function(data) {
+            $.get(url+"/conversationchange?conversation_id=" + activeconversation_id, function(data) {
                 console.log(data);
 
 
@@ -67,7 +64,7 @@ $(function() {
 
 
                 $('#newmessagebutton').on('click', function(d) {
-                    data = {user_id: "${user_id}", conversation_id: conversation_id, newmessage: $("#newmessage").val()};
+                    data = {user_id: "${user_id}", conversation_id: activeconversation_id, newmessage: $("#newmessage").val()};
                     $.post(url+"/newmessage", data=data, function(data) {
 
                     });
@@ -78,11 +75,15 @@ $(function() {
 
         function conversationchange(conversation_id) {
             if (activeconversation) {
-                session.unsubscribe(activeconversation);
-                activeconversation = 0;
+                ## console.log("Unsubscribing from "+activeconversation)
+                ## session.unsubscribe(activeconversation);
+                ## activeconversation = 0;
             }
-            //conversationrefresh(conversation_id);
-            activeconversation = session.subscribe('lemonchat.${user_id}.conversation.'+conversation_id, conversationrefresh(conversation_id));
+            activeconversation_id = conversation_id
+            conversationrefresh();
+            activeconversation = session.subscribe('lemonchat.${user_id}.conversation.'+conversation_id, conversationrefresh);
+            console.log(activeconversation);
+            console.log("Subscribing to " + activeconversation)
         }
 
 
