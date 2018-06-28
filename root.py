@@ -86,5 +86,5 @@ class Root(object):
 root = Root()
 application = cherrypy.Application(root)
 
-if __name__ == "__main__":
-    cherrypy.quickstart(root, '/')
+# if __name__ == "__main__":
+#     cherrypy.quickstart(root, '/')

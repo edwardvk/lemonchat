@@ -4,7 +4,7 @@ import rethinkdb as r
 def c():
     return r.connect("localhost", 32769, db='lemonchat').repl()
 
-if __name == "__main__"
+if __name__ == "__main__":
     try:
         r.db_create("lemonchat").run(c())
     except Exception as e:
