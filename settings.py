@@ -1,1 +1,1 @@
-url = "http://lemonchat.localhost"
+weburl = "http://lemonchat.localhost"
