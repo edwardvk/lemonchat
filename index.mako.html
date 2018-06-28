@@ -75,13 +75,15 @@ $(function() {
 
         function conversationchange(conversation_id) {
             if (activeconversation) {
-                ## console.log("Unsubscribing from "+activeconversation)
-                ## session.unsubscribe(activeconversation);
-                ## activeconversation = 0;
+                console.log("Unsubscribing from "+activeconversation_id)
+                session.unsubscribe(activeconversation['_handler']['handler']['value']);
+                activeconversation = 0;
+                activeconversation_id = 0;
             }
             activeconversation_id = conversation_id
             conversationrefresh();
-            activeconversation = session.subscribe('lemonchat.${user_id}.conversation.'+conversation_id, conversationrefresh);
+            topic = 'lemonchat.${user_id}.conversation.'+conversation_id
+            activeconversation = session.subscribe(topic, conversationrefresh);
             console.log(activeconversation);
             console.log("Subscribing to " + activeconversation)
         }
@@ -89,8 +91,8 @@ $(function() {
 
         $("#newconversationbutton").on('click', function(a) {
             data = {user_id: "${user_id}", subject: $("#subject").val()};
-            $.post(url+"/newconversation", data=data, function() {
-                console.log("Posted.");
+            $.post(url+"/newconversation", data=data, function(conversation_id) {
+                conversationchange(conversation_id);
             });    
         });
 

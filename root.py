@@ -52,7 +52,7 @@ class Root(object):
     def newconversation(self, user_id, subject):
         result = r.table('conversation').insert([{'user_id': user_id, 'subject': subject, 'stampdate': arrow.utcnow().datetime}]).run(db.c())
         wamp.publish('%s.conversations' % (user_id,))
-        return result
+        return result['generated_keys'][0]  # conversation_id
 
     @cherrypy.expose
     @cherrypy.tools.json_out()
@@ -66,6 +66,7 @@ class Root(object):
     @cherrypy.tools.json_out()
     def conversationchange(self, conversation_id): 
         result = list(r.table('message').filter({'conversation_id': conversation_id}).order_by('stampdate').run(db.c()))
+
         return result
 
     @cherrypy.expose
@@ -73,7 +74,7 @@ class Root(object):
     def newmessage(self, user_id, conversation_id, newmessage):
         result = r.table('message').insert([{'user_id': user_id, 'conversation_id': conversation_id, 'message': newmessage, 'stampdate': arrow.utcnow().datetime}]).run(db.c())
         wamp.publish('%s.conversation.%s' % (user_id, conversation_id))
-        return result
+        return result['generated_keys'][0] #  message_id
 
 
 root = Root()
