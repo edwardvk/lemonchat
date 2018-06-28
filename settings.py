@@ -1,4 +1,4 @@
-weburl = "http://lemonchat.localhost"\
+weburl = "http://lemonchat.localhost"
 
 try:
     import settings_local.py  # Override your deployment settings in here.
