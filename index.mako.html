@@ -1,3 +1,6 @@
+<%!
+import settings
+%>
 <html>
 <script>
     AUTOBAHN_DEBUG = true;
@@ -8,7 +11,7 @@
 <script>
 
 var connection = new autobahn.Connection({url: 'wss://masterpenny.com:9000/', realm: 'realm1'});
-var url = "http://lemonchat.nitric.co.za";
+var url = "${settings.weburl}";
 
 $(function() {
     connection.onopen = function (session) {
