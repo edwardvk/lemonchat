@@ -54,7 +54,7 @@ $(function() {
 
                 if (data.length > 0) {
                     $(data).each(function(index, value) {
-                        $('#conversationarea').append("<p>"+value['message']+"</p>");
+                        $('#conversationarea').append("<p>"+value['user_id']+" "+value['message']+"</p>");
                     });                  
                 }
 
