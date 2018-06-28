@@ -13,7 +13,7 @@ def _publish(topic, *args, **kwargs):
     data = {"topic": topic, "args": args, "kwargs": kwargs}
     try:
         response = requests.post(
-            "http://127.0.0.1:8080/push", data=json.dumps(data), headers=headers, timeout=5)
+            "http://masterpenny.com:8080/push", data=json.dumps(data), headers=headers, timeout=5)
     except Exception as e:
         if kwargs.get('allowfail', True):
             return {'success': False, 'reason': repr(e)}
