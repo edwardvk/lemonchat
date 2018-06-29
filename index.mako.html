@@ -65,6 +65,17 @@ $(function() {
 
                 $('#newmessagebutton'+activeconversation_id).on('click', addnewmessage);
 
+
+                $(function () {
+                    $("#newmessage"+activeconversation_id).keypress(function (e) {
+                        var code = (e.keyCode ? e.keyCode : e.which);
+                        if (code == 13) {
+                            $('#newmessagebutton'+activeconversation_id).trigger('click');
+                            return true;
+                        }
+                    });
+                });
+
                 conversationdivs = $("#conversationarea").find("div#"+activeconversation_id);
             }
             var conversationdiv = $(conversationdivs[0]);
