@@ -45,7 +45,6 @@ $(function() {
 
         function addnewmessage() {
             newmessage = $("#newmessage"+activeconversation_id).val();
-            console.log("Help");
             data = {user_id: "${user_id}", conversation_id: activeconversation_id, newmessage: newmessage};
             $.post(url+"/newmessage", data=data, function(data) {
 
@@ -59,8 +58,7 @@ $(function() {
             var conversationdivs = $("#conversationarea").find("div#"+activeconversation_id);
 
             if (!conversationdivs.length) {
-                console.log("Appending conversation area");
-                
+                ## Append conversation area                
                 $("#conversationarea").append('<div id="'+activeconversation_id+'"><div class="previousmessagediv"></div><div class="newmessagediv"><textarea id="newmessage'+activeconversation_id+'" placeholder=\"Add a message to this conversation...\"></textarea><button id="newmessagebutton'+activeconversation_id+'">New Message</button></div></div>');
 
                 $('#newmessagebutton'+activeconversation_id).on('click', addnewmessage);
@@ -82,12 +80,12 @@ $(function() {
             var previousmessagesdiv = $(conversationdiv.find('.previousmessagediv')[0]);
             //conversationdiv.not(".newmessagediv").remove();
 
-            $.get(url+"/conversationchange?conversation_id=" + activeconversation_id, function(data) {
+            $.get(url+"/conversationchange?conversation_id=" + activeconversation_id + "&user_id==${user_id}", function(data) {
                 previousmessagesdiv.empty();
                 if (data.length > 0) {
-                    $($(data.reverse())).each(function(index, value) {
-                        previousmessagesdiv.prepend("<div><p>"+value['user_id']+": "+value['message']+"</p></div>");
-                    });                  
+                    $(data).each(function(index, value) {
+                        previousmessagesdiv.append("<div><p>"+value['user_id']+": "+value['message']+"</p></div>");
+                    });           
                 }
             });
             conversationdiv.show();
