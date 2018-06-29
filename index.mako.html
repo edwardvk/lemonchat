@@ -17,7 +17,7 @@ $(function() {
     connection.onopen = function (session) {
         function conversationlist(args) {
             $.get('/conversationlist?user_id=${user_id}&agent=${agent}', function(data) {
-                // re-populate conversation list.
+                //find the conversation tab and repopulate but keep the new message text
                 $("#conversations").empty();
                 
                 if (data.length > 0) {
@@ -27,16 +27,14 @@ $(function() {
                                 $('<a class="conversationchange">').attr('conversation_id', value['id']).append(
                                     $('<span>').attr('class', 'tab').append(value['subject'] + " (" + value['prettydate'] + ") ")
                         )));
-
                     });
                     $('.conversationchange').on('click', function(d) {
                         var conversation_id = $(this).attr('conversation_id');
                         conversationchange(conversation_id);
                     });                    
                     $("#conversationbox").slideDown();
-                    
                 }
-                
+                $("#conversations").show();
             });
         }
         session.subscribe('lemonchat.conversations', conversationlist);
@@ -45,46 +43,58 @@ $(function() {
         var activeconversation = 0;
         var activeconversation_id = 0;
 
+        function addnewmessage() {
+            newmessage = $("#newmessage"+activeconversation_id).val();
+            console.log("Help");
+            data = {user_id: "${user_id}", conversation_id: activeconversation_id, newmessage: newmessage};
+            $.post(url+"/newmessage", data=data, function(data) {
+
+            });
+            $("#newmessage"+activeconversation_id).val("");
+        }
+
         function conversationrefresh() {
             ## Change conversation view. 
-            $("#conversationarea").hide()
-            $("#conversationarea").empty();
+            $("#conversationarea").children().hide();
+            var conversationdivs = $("#conversationarea").find("div#"+activeconversation_id);
+
+            if (!conversationdivs.length) {
+                console.log("Appending conversation area");
+                
+                $("#conversationarea").append('<div id="'+activeconversation_id+'"><div class="previousmessagediv"></div><div class="newmessagediv"><textarea id="newmessage'+activeconversation_id+'" placeholder=\"Add a message to this conversation...\"></textarea><button id="newmessagebutton'+activeconversation_id+'">New Message</button></div></div>');
+
+                $('#newmessagebutton'+activeconversation_id).on('click', addnewmessage);
+
+                conversationdivs = $("#conversationarea").find("div#"+activeconversation_id);
+            }
+            var conversationdiv = $(conversationdivs[0]);
+            var previousmessagesdiv = $(conversationdiv.find('.previousmessagediv')[0]);
+            //conversationdiv.not(".newmessagediv").remove();
+
             $.get(url+"/conversationchange?conversation_id=" + activeconversation_id, function(data) {
-
-
+                previousmessagesdiv.empty();
                 if (data.length > 0) {
-                    $(data).each(function(index, value) {
-                        $('#conversationarea').append("<p>"+value['user_id']+": "+value['message']+"</p>");
+                    $($(data.reverse())).each(function(index, value) {
+                        previousmessagesdiv.prepend("<div><p>"+value['user_id']+": "+value['message']+"</p></div>");
                     });                  
                 }
-
-                $("#conversationarea").append('<div class="mblm-item mblm-item-right"><textarea id="newmessage" placeholder=\"Add a message to this conversation...\"></textarea><button id="newmessagebutton"><i class=\"zmdi zmdi-mail-send\">New Message</i></button></div>');
-
-
-                $('#newmessagebutton').on('click', function(d) {
-                    data = {user_id: "${user_id}", conversation_id: activeconversation_id, newmessage: $("#newmessage").val()};
-                    $.post(url+"/newmessage", data=data, function(data) {
-
-                    });
-                });
             });
-            $("#conversationarea").show();
+            conversationdiv.show();
         }
 
         function conversationchange(conversation_id) {
             if (activeconversation) {
-                console.log("Unsubscribing from "+activeconversation_id)
+                console.log("Unsubscribing from "+activeconversation_id);
                 session.unsubscribe(activeconversation['_handler']['handler']['value']);
                 activeconversation = 0;
                 activeconversation_id = 0;
             }
-            activeconversation_id = conversation_id
+            activeconversation_id = conversation_id;
             conversationrefresh();
-            topic = 'lemonchat.conversation.'+conversation_id
+            topic = 'lemonchat.conversation.'+conversation_id;
             activeconversation = session.subscribe(topic, conversationrefresh);
-            console.log("Subscribing to " + activeconversation)
+            console.log("Subscribing to " + activeconversation_id);
         }
-
 
         $("#newconversationbutton").on('click', function(a) {
             data = {user_id: "${user_id}", subject: $("#subject").val()};
@@ -111,24 +121,10 @@ Existing Conversations:
 <ul id="conversations">
 </ul>
 </div>
-Conversation Area:
-<div id="conversationarea" class="mb-list">
-    <div class="mbl-messages c-overflow">    
-    
-        <div class="mbl-compose">
-            Hello ${user_id}. How can we help you today?
-        </div>
-        <div class="mblm-item mblm-item-right">
-        <textarea id='subject' placeholder="Subject of new conversation..."></textarea>
-        <button id='newconversationbutton'><i class="zmdi zmdi-mail-send">New Conversation</i></button>
-        </div>
-    
-        <!-- <div class="mblm-item mblm-item-right">
-            <div>
-                Cras mattis consectetur purus sit amet fermentum. Cras justo odio, dapibus ac facilisis in, egestas eget quam. Integer posuere erat a ante venenatis dapibus posuere velit aliquet. Sed posuere consectetur est at lobortis. Aenean lacinia bibendum nulla sed consectetur. Aenean eu leo quam. Pellentesque ornare sem lacinia quam venenatis vestibulum.                                    </div>
-            <small>6:15 PM</small>
-        </div> -->
-
-    </div>
+<div class="mblm-item mblm-item-right">
+<textarea id='subject' placeholder="Topic of new conversation..."></textarea><br>
+<button id='newconversationbutton'><i>New Conversation</i></button>
 </div>
+<hr>
+<div id="conversationarea"></div>
 </html>
