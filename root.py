@@ -65,7 +65,7 @@ class Root(object):
         else:
             result = list(r.table('conversation').filter({'user_id': user_id}).order_by('stampdate').run(db.c()))
         for row in result:
-            row['prettydate'] = arrow.get(row.get('stampdate')).humanize()
+            row['date'] = arrow.get(row.get('stampdate')).datetime
         return result
 
     @cherrypy.expose

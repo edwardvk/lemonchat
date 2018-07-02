@@ -7,11 +7,22 @@ import settings
 </script>
 <script src="/static/autobahn.min.js"></script>
 <script src="/static/jquery-3.3.1.min.js"></script>
+<script src="/static/moment.js"></script>
+<script src="/static/moment-timezone.js"></script>
 
 <script>
 
 var connection = new autobahn.Connection({url: 'wss://masterpenny.com:9000/', realm: 'realm1'});
 var url = "${settings.weburl}";
+
+function updatereltime() {
+    $(".reltime").each(function (index) {
+        console.log(moment($(this).data('date')).fromNow());
+        $(this).html("<sub>"+moment($(this).data('date')).fromNow()+"</sub>");
+    });
+    
+}
+setInterval(updatereltime, 60000); // set next one
 
 $(function() {
     connection.onopen = function (session) {
@@ -25,9 +36,11 @@ $(function() {
                         $('#conversations').append(
                             $('<li>').append(
                                 $('<a class="conversationchange">').attr('conversation_id', value['conversation_id']).append(
-                                    $('<span>').attr('class', 'tab').append(value['subject'] + " (" + value['prettydate'] + ") ")
+                                    $('<span>').attr('class', 'tab').append(value['subject'] + ' <span class="reltime" data-date="'+ value['date'] + '">') 
                         )));
                     });
+                    updatereltime();
+
                     $('.conversationchange').on('click', function(d) {
                         var conversation_id = $(this).attr('conversation_id');
                         conversationchange(conversation_id);
