@@ -5,14 +5,15 @@ def c():
     return r.connect("localhost", 32769, db='lemonchat').repl()
 
 if __name__ == "__main__":
+    r.db_drop('lemonchat').run(c())
     try:
         r.db_create("lemonchat").run(c())
     except Exception as e:
         print(e)
 
-    for table in ('conversation', 'message', 'user'):
+    for table in ('conversation', 'message', 'user', 'lastseen'):
         try:
-            r.db("lemonchat").table_create(table).run(c())
+            r.db("lemonchat").table_create(table, primary_key=table + "_id").run(c())
         except Exception as e:
             print(e)
 

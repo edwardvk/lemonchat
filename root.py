@@ -65,14 +65,16 @@ class Root(object):
         else:
             result = list(r.table('conversation').filter({'user_id': user_id}).order_by('stampdate').run(db.c()))
         for row in result:
-            row['prettydate'] = arrow.get(row.get('stampdate')).humanize()
+            row['date'] = arrow.get(row.get('stampdate')).datetime
         return result
 
     @cherrypy.expose
     @cherrypy.tools.json_out()
-    def conversationchange(self, conversation_id): 
+    def conversationchange(self, conversation_id, user_id): 
         result = list(r.table('message').filter({'conversation_id': conversation_id}).order_by('stampdate').run(db.c()))
-
+        if result:
+            r.table('lastseen').delete({'user_id': user_id, "conversation_id": conversation_id}, return_changes=False)
+            r.table('lastseen').insert({'user_id': user_id, 'conversation_id': conversation_id, 'message_id': result[-1]['message_id']}).run(db.c())
         return result
 
     @cherrypy.expose
