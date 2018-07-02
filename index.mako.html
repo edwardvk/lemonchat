@@ -20,18 +20,27 @@ function updatetime() {
         $(this).html(moment($(this).attr('datetime')).fromNow());
     });
 }
-
 setInterval(updatetime, 60000); // run every so often to update relative time fields.
 
 $(function() {
     connection.onopen = function (session) {
         var conversationsubs = [];
         
-        function conversationsummary() {
+        function conversationsummary(args, kwargs, details) {
             // Summary information regarding this conversation has changed.
             // alert();
             // Request the last updates and number of unread messages if not active window
             console.log("New message, time to update the summary information");
+            $(args).each(function () {
+                conversation_id = this['conversation_id'];
+                $.get("/conversationsummary?user_id=${user_id}&conversation_id="+conversation_id, function (data) {
+                    console.log(data);
+                    $("#debug"+conversation_id).html("Unread: " +data['unread'] + ' Updated: <time class="reltime" datetime="' + data['updated'] + '"></time>');
+                    updatetime();
+                });
+                
+            });
+            
         }
 
         function conversationlist(args) {
@@ -50,7 +59,7 @@ $(function() {
                         $('#conversations').append(
                             $('<li>').append(
                                 $('<a class="conversationchange">').attr('conversation_id', value['conversation_id']).append(
-                                    $('<span>').append("<strong>" + value['subject'] + '</strong>' + ' <small>Created  <time class="reltime" datetime="' + value['date'] + '"></time></small>')
+                                    $('<span>').append("<strong>" + value['subject'] + '</strong>' + ' <small>Created  <time class="reltime" datetime="' + value['date'] + '"></time> <span id="debug' + value['conversation_id'] + '"></span></small>')
                         )));
                         topic = 'lemonchat.conversation.'+value['conversation_id'];
                         console.log("Subscribing to conversation (summary) for "+value['conversation_id']);
