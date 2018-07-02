@@ -78,10 +78,13 @@ class Root(object):
         lastseen_message_ids = list(r.table('lastseen').filter({'conversation_id', 'user_id'}).run(db.c()))
         if lastseen_message_ids:
             lastseen_message_id = lastseen_message_ids[-1]['message_id']
-            allmessages = r.table('message').filter({'conversation_id'}).order_by('stampdate').run(db.c())
+            allmessages = r.table('message').filter({'conversation_id': conversation_id}).order_by('stampdate').run(db.c())
             message_ids = [x['message_id'] for x in allmessages]
-            pos = message_ids.index(lastseen_message_id)
-            unread = len(message_ids) - pos
+            try: 
+                pos = message_ids.index(lastseen_message_id)
+            except ValueError:
+                pos = 0
+            unread = len(message_ids) - pos - 1
         else:
             unread = 0
         return {'updated': updated, 'unread': unread}
