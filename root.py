@@ -82,7 +82,7 @@ class Root(object):
     def newmessage(self, user_id, conversation_id, newmessage):
         result = r.table('message').insert([{'user_id': user_id, 'conversation_id': conversation_id, 'message': newmessage, 'stampdate': arrow.utcnow().datetime}]).run(db.c())
         wamp.publish('conversation.%s' % (conversation_id))
-        return result['generated_keys'][0] #  message_id
+        return result['generated_keys'][0]  # message_id
 
 
 root = Root()

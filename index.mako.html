@@ -15,31 +15,48 @@ import settings
 var connection = new autobahn.Connection({url: 'wss://masterpenny.com:9000/', realm: 'realm1'});
 var url = "${settings.weburl}";
 
-function updatereltime() {
-    $(".reltime").each(function (index) {
-        console.log(moment($(this).data('date')).fromNow());
-        $(this).html("<sub>"+moment($(this).data('date')).fromNow()+"</sub>");
+function updatetime() {
+    $("time.reltime").each(function (index) {
+        $(this).html(moment($(this).attr('datetime')).fromNow());
     });
-    
 }
-setInterval(updatereltime, 60000); // set next one
+
+setInterval(updatetime, 60000); // run every so often to update relative time fields.
 
 $(function() {
     connection.onopen = function (session) {
+        var conversationsubs = [];
+        
+        function conversationsummary() {
+            // Summary information regarding this conversation has changed.
+            // alert();
+            // Request the last updates and number of unread messages if not active window
+            console.log("New message, time to update the summary information");
+        }
+
         function conversationlist(args) {
             $.get('/conversationlist?user_id=${user_id}&agent=${agent}', function(data) {
-                //find the conversation tab and repopulate but keep the new message text
-                $("#conversations").empty();
                 
+                //unsubscribe from previous conversations
+                $("#conversations").empty();
+                $(conversationsubs).each(function () {
+                    console.log("Unsubscribing..")
+                    session.unsubscribe(this['_handler']['handler']['value']);
+                });
+                conversationsubs = [];
+
                 if (data.length > 0) {
                     $(data).each(function(index, value) {
                         $('#conversations').append(
                             $('<li>').append(
                                 $('<a class="conversationchange">').attr('conversation_id', value['conversation_id']).append(
-                                    $('<span>').attr('class', 'tab').append(value['subject'] + ' <span class="reltime" data-date="'+ value['date'] + '">') 
+                                    $('<span>').append("<strong>" + value['subject'] + '</strong>' + ' <small>Created  <time class="reltime" datetime="' + value['date'] + '"></time></small>')
                         )));
+                        topic = 'lemonchat.conversation.'+value['conversation_id'];
+                        console.log("Subscribing to conversation (summary) for "+value['conversation_id']);
+                        conversationsubs.push(session.subscribe(topic, conversationsummary));
                     });
-                    updatereltime();
+                    updatetime();
 
                     $('.conversationchange').on('click', function(d) {
                         var conversation_id = $(this).attr('conversation_id');
