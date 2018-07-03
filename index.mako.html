@@ -61,7 +61,7 @@ $(function() {
                                 $('<a class="conversationchange">').attr('conversation_id', value['conversation_id']).append(
                                     $('<span>').append("<strong>" + value['subject'] + '</strong>' + ' <small>Created  <time class="reltime" datetime="' + value['date'] + '"></time> <span id="debug' + value['conversation_id'] + '"></span></small>')
                         )));
-                        topic = 'lemonchat.conversation.'+value['conversation_id'];
+                        topic = 'lemonchat.conversationsummary.'+value['conversation_id'];
                         console.log("Subscribing to conversation (summary) for "+value['conversation_id']);
                         conversationsubs.push(session.subscribe(topic, conversationsummary));
                     });

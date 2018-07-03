@@ -75,7 +75,7 @@ class Root(object):
         updated = r.table('message').filter({'conversation_id': conversation_id}).max('stampdate').run(db.c()).get('stampdate')
         
         # Now determine how many unread messages there are.,
-        lastseen_message_ids = list(r.table('lastseen').filter({'conversation_id', 'user_id'}).run(db.c()))
+        lastseen_message_ids = list(r.table('lastseen').filter({'conversation_id': conversation_id, 'user_id': user_id}).run(db.c()))
         if lastseen_message_ids:
             lastseen_message_id = lastseen_message_ids[-1]['message_id']
             allmessages = r.table('message').filter({'conversation_id': conversation_id}).order_by('stampdate').run(db.c())
@@ -83,7 +83,7 @@ class Root(object):
             try: 
                 pos = message_ids.index(lastseen_message_id)
             except ValueError:
-                pos = 0
+                pos = -1
             unread = len(message_ids) - pos - 1
         else:
             unread = 0
@@ -92,17 +92,19 @@ class Root(object):
     @cherrypy.expose
     @cherrypy.tools.json_out()
     def conversationchange(self, conversation_id, user_id): 
-        result = list(r.table('message').filter({'conversation_id': conversation_id}).order_by('stampdate').run(db.c()))
-        if result:
-            r.table('lastseen').delete({'user_id': user_id, "conversation_id": conversation_id}, return_changes=False)
-            r.table('lastseen').insert({'user_id': user_id, 'conversation_id': conversation_id, 'message_id': result[-1]['message_id']}).run(db.c())
-        return result
+        results = list(r.table('message').filter({'conversation_id': conversation_id}).order_by('stampdate').run(db.c()))
+        if results:
+            r.table('lastseen').filter({'user_id': user_id, "conversation_id": conversation_id}).delete().run(db.c())
+            r.table('lastseen').insert({'user_id': user_id, 'conversation_id': conversation_id, 'message_id': results[-1]['message_id']}).run(db.c())
+            wamp.publish('conversationsummary.%s' % (conversation_id), {'conversation_id': conversation_id})
+        return results
 
     @cherrypy.expose
     @cherrypy.tools.json_out()
     def newmessage(self, user_id, conversation_id, newmessage):
         result = r.table('message').insert([{'user_id': user_id, 'conversation_id': conversation_id, 'message': newmessage, 'stampdate': arrow.utcnow().datetime}]).run(db.c())
         wamp.publish('conversation.%s' % (conversation_id), {'conversation_id': conversation_id})
+        wamp.publish('conversationsummary.%s' % (conversation_id), {'conversation_id': conversation_id})
         return result['generated_keys'][0]  # message_id
 
 
