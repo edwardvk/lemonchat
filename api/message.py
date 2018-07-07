@@ -55,7 +55,7 @@ class message():
 
     @cherrypy.expose
     @cherrypy.tools.json_out()
-    def newmessage(self, user_id, conversation_id, newmessage):
+    def new(self, user_id, conversation_id, newmessage):
         result = r.table('message').insert([{'user_id': user_id, 'conversation_id': conversation_id, 'message': newmessage, 'stampdate': arrow.utcnow().datetime}]).run(db.c())
         wamp.publish('conversation.%s' % (conversation_id), {'conversation_id': conversation_id})
         wamp.publish('conversationsummary.%s' % (conversation_id), {'conversation_id': conversation_id})

@@ -33,7 +33,7 @@ $(function() {
             console.log("New message, time to update the summary information");
             $(args).each(function () {
                 conversation_id = this['conversation_id'];
-                $.get("/api/conversation/conversationsummary?user_id=${user_id}&conversation_id="+conversation_id, function (data) {
+                $.get("/api/conversation/summary?user_id=${user_id}&conversation_id="+conversation_id, function (data) {
                     console.log(data);
                     $("#debug"+conversation_id).html("Unread: " +data['unread'] + ' Updated: <time class="reltime" datetime="' + data['updated'] + '"></time>');
                     updatetime();
@@ -44,7 +44,7 @@ $(function() {
         }
 
         function conversationlist(args) {
-            $.get('/api/conversation/conversationlist?user_id=${user_id}&agent=${agent}', function(data) {
+            $.get('/api/conversation/list?user_id=${user_id}&agent=${agent}', function(data) {
                 
                 //unsubscribe from previous conversations
                 $("#conversations").empty();
@@ -85,7 +85,7 @@ $(function() {
         function addnewmessage() {
             newmessage = $("#newmessage"+activeconversation_id).val();
             data = {user_id: "${user_id}", conversation_id: activeconversation_id, newmessage: newmessage};
-            $.post("/api/message/newmessage", data=data, function(data) {
+            $.post("/api/message/new", data=data, function(data) {
 
             });
             $("#newmessage"+activeconversation_id).val("");
@@ -119,7 +119,7 @@ $(function() {
             var previousmessagesdiv = $(conversationdiv.find('.previousmessagediv')[0]);
             //conversationdiv.not(".newmessagediv").remove();
 
-            $.get("/api/conversation/conversationchange?conversation_id=" + activeconversation_id + "&user_id=${user_id}", function(data) {
+            $.get("/api/conversation/change?conversation_id=" + activeconversation_id + "&user_id=${user_id}", function(data) {
                 previousmessagesdiv.empty();
                 if (data.length > 0) {
                     $(data).each(function(index, value) {
@@ -146,8 +146,8 @@ $(function() {
 
         $("#newconversationbutton").on('click', function(a) {
             data = {user_id: "${user_id}", subject: $("#subject").val()};
-            $.post("/api/conversation/newconversation", data=data, function(conversation_id) {
-                conversationchange(conversation_id);
+            $.post("/api/conversation/new", data=data, function(data) {
+                conversationchange(data['conversation_id']);
             });    
         });
 

@@ -54,14 +54,14 @@ class conversation():
 
     @cherrypy.expose
     @cherrypy.tools.json_out()
-    def newconversation(self, user_id: str, subject: str):
+    def new(self, user_id: str, subject: str):
         result = r.table('conversation').insert([{'user_id': user_id, 'subject': subject, 'stampdate': arrow.utcnow().datetime}]).run(db.c())
         wamp.publish('conversations')  # @TODO a user should only listen to conversation that involve them
-        return result['generated_keys'][0]  # conversation_id
+        return {"conversation_id": result['generated_keys'][0]}
 
     @cherrypy.expose
     @cherrypy.tools.json_out()
-    def conversationlist(self, user_id: str, agent=0):
+    def list(self, user_id: str, agent=0):
         agent = int(agent)
         if agent:
             result = list(r.table('conversation').order_by('stampdate').run(db.c()))
@@ -73,7 +73,7 @@ class conversation():
 
     @cherrypy.expose
     @cherrypy.tools.json_out()
-    def conversationsummary(self, user_id: str, conversation_id: str):
+    def summary(self, user_id: str, conversation_id: str):
         """Returns only the last updated datetime and the number of messages unread"""
         updated = r.table('message').filter({'conversation_id': conversation_id}).max('stampdate').run(db.c()).get('stampdate')
 
@@ -94,7 +94,7 @@ class conversation():
 
     @cherrypy.expose
     @cherrypy.tools.json_out()
-    def conversationchange(self, conversation_id: str, user_id: str): 
+    def change(self, conversation_id: str, user_id: str): 
         results = list(r.table('message').filter({'conversation_id': conversation_id}).order_by('stampdate').run(db.c()))
         if results:
             r.table('lastseen').filter({'user_id': user_id, "conversation_id": conversation_id}).delete().run(db.c())
