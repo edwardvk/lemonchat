@@ -19,9 +19,17 @@ class conversation():
     #         cherrypy.request.params['user_id'] = vpath.pop()
 
     #     return self
+
+    @cherrypy.tools.json_in()
+    @cherrypy.tools.json_out()
     @cherrypy.expose
-    def moo(self):
-        return "Moo"
+    def index(self, *a, **kw):
+        if cherrypy.request.method.lower() in ('post', 'get'):
+            # Assume a new()
+            return self.new(*a, **kw)
+
+        raise Exception("Method not implemented")
+
 
     @cherrypy.tools.json_out()
     def GET(self, **kwargs: Dict[str, str]) -> str:
@@ -35,22 +43,22 @@ class conversation():
         return results
 
 
-    @cherrypy.tools.json_in()
-    @cherrypy.tools.json_out()
-    def POST(self):
-        """Creates a new conversation"""
-        input = cherrypy.request.json
-        inputParams = {}
+    # @cherrypy.tools.json_in()
+    # @cherrypy.tools.json_out()
+    # def POST(self):
+    #     """Creates a new conversation"""
+    #     input = cherrypy.request.json
+    #     inputParams = {}
 
-        for key, value in input.items():
-            inputParams[key] = str(value)
+    #     for key, value in input.items():
+    #         inputParams[key] = str(value)
 
-        result = r.table('conversation').insert(
-            [{'user_id': inputParams.get('user_id'),
-              'subject': inputParams.get('subject'),
-              'stampdate': arrow.utcnow().datetime}]).run(db.c())
-        # wamp.publish('conversations')  # @TODO a user should only listen to conversation that involve them
-        return result['generated_keys'][0]  # conversation_id
+    #     result = r.table('conversation').insert(
+    #         [{'user_id': inputParams.get('user_id'),
+    #           'subject': inputParams.get('subject'),
+    #           'stampdate': arrow.utcnow().datetime}]).run(db.c())
+    #     # wamp.publish('conversations')  # @TODO a user should only listen to conversation that involve them
+    #     return result['generated_keys'][0]  # conversation_id
 
     @cherrypy.expose
     @cherrypy.tools.json_out()
