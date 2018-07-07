@@ -1,0 +1,40 @@
+---
+test_name: Test conversations
+
+# ...and each test has one or more stages (e.g. an HTTP request)
+stages:
+  - name: Create a new conversation using POST 
+    request:
+      url: http://lemonchat.localhost/api/conversation/new
+      method: POST
+      data:
+        subject: New conversation 1
+        user_id: test
+      
+    response:
+      status_code: 200
+      save:
+        body:
+          returned_id: conversation_id
+
+  - name: Change to this conversation
+
+    request:
+      url: http://lemonchat.localhost/api/conversation/change
+      method: POST
+      data:
+        conversation_id: {returned_id}
+        user_id: test
+      
+    response:
+      status_code: 200
+
+
+  - name: List all conversations
+
+    request:
+      url: http://lemonchat.localhost/api/conversation/list?user_id=test
+      method: GET
+      
+    response:
+      status_code: 200
