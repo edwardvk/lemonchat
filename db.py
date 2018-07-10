@@ -5,7 +5,10 @@ def c():
     return r.connect("localhost", 32769, db='lemonchat').repl()
 
 if __name__ == "__main__":
-    r.db_drop('lemonchat').run(c())
+    try:
+        r.db_drop('lemonchat').run(c())
+    except Exception as e:
+        print(e)
     try:
         r.db_create("lemonchat").run(c())
     except Exception as e:

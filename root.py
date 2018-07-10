@@ -43,9 +43,10 @@ cherrypy.config['tools.json_out.handler'] = json_handler
 
 class Root(object):
     @cherrypy.expose
-    def index(self, user_id, agent=0):
+    def index(self, user_id, agent=0, template='index'):
+        assert template in ('index', 'chat')
         # @TODO If agent, then asset that user_id is actually an agent.
-        template = mako.template.Template(filename="index.mako.html")
+        template = mako.template.Template(filename=template + ".mako.html")
         return template.render(user_id=user_id, agent=agent)
 
 
