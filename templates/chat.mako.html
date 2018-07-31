@@ -18,6 +18,9 @@ import cherrypy
 <script>
 AUTOBAHN_DEBUG = true; 
 </script>
+<style>
+#people-list li { cursor: pointer; }
+</style>
 </head>
 <body>
   <div class="container clearfix">
@@ -129,7 +132,7 @@ $(function() {
         }
 
         function conversationlist(args) {
-            $.get('/conversationlist?user_id=${user_id}&agent=${agent}', function(data) {
+            $.get('/api/conversation/list?user_id=${user_id}&agent=${agent}', function(data) {
                 
                 //unsubscribe from previous conversations
                 $("#conversations").empty();
