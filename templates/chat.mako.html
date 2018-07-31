@@ -1,0 +1,256 @@
+<%! 
+import settings
+import cherrypy
+%>
+<!doctype html>
+<html>
+<head>
+<title>Chat Interface</title>
+<link rel="stylesheet" href="/static/reset.css" />
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.4.0/css/font-awesome.min.css" />
+<link rel="stylesheet" href="/static/chat.css" />
+<script src="/static/autobahn.min.js"></script>
+<script src="/static/jquery-3.3.1.min.js"></script>
+<script src="/static/moment.js"></script>
+<script src="/static/moment-timezone.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/handlebars.js/3.0.0/handlebars.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/list.js/1.5.0/list.min.js"></script>
+<script>
+AUTOBAHN_DEBUG = true; 
+</script>
+<style>
+#people-list li { cursor: pointer; }
+</style>
+</head>
+<body>
+  <div class="container clearfix">
+    <div class="people-list" id="people-list">
+      <div class="search">
+        <input type="text" placeholder="search" />
+        <i class="fa fa-search"></i>
+      </div>
+      <ul class="list">
+        
+      </ul>
+    </div>
+    
+    <div class="chat">
+      <div class="chat-header clearfix">
+        <img src="https://s3-us-west-2.amazonaws.com/s.cdpn.io/195612/chat_avatar_01_green.jpg" alt="avatar" />
+        
+        <div class="chat-about">
+          <div class="chat-with">Chat with Vincent Porter</div>
+          <div class="chat-num-messages">already 1 902 messages</div>
+        </div>
+        <i class="fa fa-star"></i>
+      </div> <!-- end chat-header -->
+      
+      <div class="chat-history">
+        <ul>
+         
+        </ul>
+        
+      </div> <!-- end chat-history -->
+      
+      <div class="chat-message clearfix">
+        <textarea name="message-to-send" id="message-to-send" placeholder ="Type your message" rows="3"></textarea>
+                
+        <i class="fa fa-file-o"></i> &nbsp;&nbsp;&nbsp;
+        <i class="fa fa-file-image-o"></i>
+        
+        <button>Send</button>
+
+      </div> <!-- end chat-message -->
+      
+    </div> <!-- end chat -->
+    
+  </div> <!-- end container -->
+
+<script id="message-template" type="text/x-handlebars-template">
+  <li class="clearfix">
+    <div class="message-data align-right">
+      <span class="message-data-time" >{{time}}, Today</span> &nbsp; &nbsp;
+      <span class="message-data-name" >Olia</span> <i class="fa fa-circle me"></i>
+    </div>
+    <div class="message other-message float-right">
+      {{messageOutput}}
+    </div>
+  </li>
+</script>
+
+<script id="message-response-template" type="text/x-handlebars-template">
+  <li>
+    <div class="message-data">
+      <span class="message-data-name"><i class="fa fa-circle online"></i> Vincent</span>
+      <span class="message-data-time">{{time}}, Today</span>
+    </div>
+    <div class="message my-message">
+      {{response}}
+    </div>
+  </li>
+</script>
+
+
+<script>
+(function(){
+
+
+var connection = new autobahn.Connection({url: 'wss://masterpenny.com:9000/', realm: 'realm1'});
+var url = "${cherrypy.url()}";
+
+function updatetime() {
+    $("time.reltime").each(function (index) {
+        $(this).html(moment($(this).attr('datetime')).fromNow());
+    });
+}
+setInterval(updatetime, 60000); // run every so often to update relative time fields.
+
+var peopleList = new List('people-list', {
+    valueNames: ['name', 'status', {data: ['id']}, { attr: 'src', name: 'avatar' }, { attr: 'datetime', name: 'reltime'}],
+    item: '<li class="clearfix"> <a data-id=""> <img class="avatar" src="" alt="avatar" /><div class="about"> <div class="name"></div> <time class="reltime" datetime=""></time> </div></a></li>'
+});
+
+$(function() {
+    connection.onopen = function (session) {
+        var conversationsubs = [];
+        
+        function conversationsummary(args, kwargs, details) {
+            // Summary information regarding this conversation has changed.
+            // alert();
+            // Request the last updates and number of unread messages if not active window
+            console.log("New message, time to update the summary information");
+            $(args).each(function () {
+                conversation_id = this['conversation_id'];
+                $.get("/conversationsummary?user_id=${user_id}&conversation_id="+conversation_id, function (data) {
+                    console.log(data);
+                    $("#debug"+conversation_id).html("Unread: " +data['unread'] + ' Updated: <time class="reltime" datetime="' + data['updated'] + '"></time>');
+                    updatetime();
+                });
+                
+            });
+            
+        }
+
+        function conversationlist(args) {
+            $.get('/api/conversation/list?user_id=${user_id}&agent=${agent}', function(data) {
+                
+                //unsubscribe from previous conversations
+                $("#conversations").empty();
+                $(conversationsubs).each(function () {
+                    console.log("Unsubscribing..")
+                    session.unsubscribe(this['_handler']['handler']['value']);
+                });
+                conversationsubs = [];
+
+                if (data.length > 0) {
+                    $(data).each(function(index, value) {
+                      console.log(value);
+                      peopleList.add({id: value.conversation_id, name: value.subject, reltime: value.date});
+                      updatetime();
+                        topic = 'lemonchat.conversationsummary.'+value['conversation_id'];
+                        console.log("Subscribing to conversation (summary) for "+value['conversation_id']);
+                        conversationsubs.push(session.subscribe(topic, conversationsummary));
+                    });
+                    updatetime();
+
+                    $('.conversationchange').on('click', function(d) {
+                        var conversation_id = $(this).attr('conversation_id');
+                        conversationchange(conversation_id);
+                    });                    
+                    $("#conversationbox").slideDown();
+                }
+                $("#conversations").show();
+            });
+        }
+        session.subscribe('lemonchat.conversations', conversationlist);
+        conversationlist();
+
+        var activeconversation = 0;
+        var activeconversation_id = 0;
+
+        function addnewmessage() {
+            newmessage = $("#newmessage"+activeconversation_id).val();
+            data = {user_id: "${user_id}", conversation_id: activeconversation_id, newmessage: newmessage};
+            $.post(url+"/newmessage", data=data, function(data) {
+
+            });
+            $("#newmessage"+activeconversation_id).val("");
+        }
+
+        function conversationrefresh() {
+            ## Change conversation view. 
+            $("#conversationarea").children().hide();
+            var conversationdivs = $("#conversationarea").find("div#"+activeconversation_id);
+
+            if (!conversationdivs.length) {
+                ## Append conversation area                
+                $("#conversationarea").append('<div id="'+activeconversation_id+'"><div class="previousmessagediv"></div><div class="newmessagediv"><textarea id="newmessage'+activeconversation_id+'" placeholder=\"Add a message to this conversation...\"></textarea><button id="newmessagebutton'+activeconversation_id+'">New Message</button></div></div>');
+
+                $('#newmessagebutton'+activeconversation_id).on('click', addnewmessage);
+
+
+                $(function () {
+                    $("#newmessage"+activeconversation_id).keypress(function (e) {
+                        var code = (e.keyCode ? e.keyCode : e.which);
+                        if (code == 13) {
+                            $('#newmessagebutton'+activeconversation_id).trigger('click');
+                            return true;
+                        }
+                    });
+                });
+
+                conversationdivs = $("#conversationarea").find("div#"+activeconversation_id);
+            }
+            var conversationdiv = $(conversationdivs[0]);
+            var previousmessagesdiv = $(conversationdiv.find('.previousmessagediv')[0]);
+            //conversationdiv.not(".newmessagediv").remove();
+
+            $.get(url+"/conversationchange?conversation_id=" + activeconversation_id + "&user_id=${user_id}", function(data) {
+                previousmessagesdiv.empty();
+                if (data.length > 0) {
+                    $(data).each(function(index, value) {
+                        previousmessagesdiv.append("<div><p>"+value['user_id']+": "+value['message']+"</p></div>");
+                    });           
+                }
+            });
+            conversationdiv.show();
+        }
+
+        function conversationchange(conversation_id) {
+            if (activeconversation) {
+                console.log("Unsubscribing from "+activeconversation_id);
+                session.unsubscribe(activeconversation['_handler']['handler']['value']);
+                activeconversation = 0;
+                activeconversation_id = 0;
+            }
+            activeconversation_id = conversation_id;
+            conversationrefresh();
+            topic = 'lemonchat.conversation.'+conversation_id;
+            activeconversation = session.subscribe(topic, conversationrefresh);
+            console.log("Subscribing to " + activeconversation_id);
+        }
+
+        $("#newconversationbutton").on('click', function(a) {
+            data = {user_id: "${user_id}", subject: $("#subject").val()};
+            $.post(url+"/newconversation", data=data, function(conversation_id) {
+                conversationchange(conversation_id);
+            });    
+        });
+
+        console.log("Connection opened.");
+    }
+
+    connection.onclose = function (reason, details) {
+        console.log("Connection closed: "+reason);
+        setTimeout(connection.open, 15000);
+    }
+
+    connection.open();
+});      
+
+  
+})();
+
+</script>
+</body>
+</html>
