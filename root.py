@@ -2,6 +2,9 @@ import os
 import cherrypy
 import mako.template
 import api.root
+import json
+from cryptography.fernet import Fernet
+import settings
 
 # sys.stdout = sys.stderr
 # currentdir = os.path.dirname(os.path.realpath(__file__))
@@ -12,7 +15,12 @@ import api.root
 
 class Root(object):
     @cherrypy.expose
-    def index(self, user_id, agent=0):
+    def index(self, loginauth):
+        f = Fernet(settings.secret)  # lemongroup
+        input = json.loads(f.decrypt(loginauth))
+        user_id = input['salesagent_name']
+        agent = input['agent']
+        
         # @TODO If agent, then asset that user_id is actually an agent.
         template = mako.template.Template(filename=os.path.join("templates", "index.mako.html"))
         return template.render(user_id=user_id, agent=agent)
