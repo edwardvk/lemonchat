@@ -19,7 +19,7 @@ lemongroup = -244798008
 def connect():
     global bot
     try:
-        bot = telegram.Bot(token='151158658:AAHA9kizdO6aQjqPG742yeRMUdv0nSu2QPo')
+        bot = telegram.Bot(token=settings.doyatelegram)
     except:
         bot = None
 connect()
@@ -38,7 +38,7 @@ def send(channel, text):
         response = bot.sendMessage(channel, text)
     except:
         # Try resetting the connection...
-        bot = telegram.Bot(token='151158658:AAHA9kizdO6aQjqPG742yeRMUdv0nSu2QPo')
+        bot = telegram.Bot(token=settings.doyatelegram)
         response = bot.sendMessage(channel, text=text)
     return response['message_id']
 
