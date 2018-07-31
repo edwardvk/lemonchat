@@ -1,6 +1,6 @@
 import rethinkdb as r
 import settings
-
+print(dir(settings))
 
 def c():
     return r.connect("localhost", settings.rethinkport, db='lemonchat').repl()
