@@ -5,3 +5,4 @@ __pycache__
 nginx.conf
 venv-lemonchat
 *.pyc
+settings_local.py
