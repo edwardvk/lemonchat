@@ -1,8 +1,10 @@
 import rethinkdb as r
+import settings
 
 
 def c():
-    return r.connect("localhost", 32769, db='lemonchat').repl()
+    return r.connect("localhost", settings.rethinkport, db='lemonchat').repl()
+
 
 if __name__ == "__main__":
     r.db_drop('lemonchat').run(c())
