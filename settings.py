@@ -1,5 +1,6 @@
 weburl = "http://lemonchat.localhost"
-rethinkport = 0
+rethinkport = 32769
+testmode = False
 
 try:
     from settings_local import *  # Override your deployment settings in here.

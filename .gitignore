@@ -1,5 +1,8 @@
+venv-lemonchat
 __pycache__
 .pytest_cache
 .vscode
+nginx.conf
 venv-lemonchat
-
+*.pyc
+settings_local.py
