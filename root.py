@@ -21,7 +21,7 @@ class Root(object):
         assert template in ('index', 'chat')
         f = Fernet(settings.secret)  # lemongroup
         input = json.loads(f.decrypt(loginauth.encode()))
-        user_id = input['salesagent_name']
+        user_id = input['user_id']
         agent = input['agent']
 
         template = TEMPLATES.get_template(template + ".mako.html")
