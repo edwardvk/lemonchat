@@ -137,7 +137,7 @@ function conversationsummary(args, kwargs, details) {
         var id = this['conversation_id'];
         $.get("/api/conversation/summary?user_id=${user_id}&conversation_id="+id, function (data) {
             console.log(data);
-            var t =$('.people-list li[id="'+id+'"]');
+            var t =$('.people-list li[data-id="'+id+'"]');
             t.find('.reltime').prop('datetime', data.updated);
             t.find('.unread-count').text('');
             if (data.unread) {
