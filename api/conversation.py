@@ -72,9 +72,9 @@ class conversation():
     def list(self, user_id: str, agent=0):
         agent = int(agent)
         if agent:
-            result = list(r.table('conversation').order_by('stampdate').run(db.c()))
+            result = list(r.table('conversation').order_by(r.desc('stampdate')).run(db.c()))
         else:
-            result = list(r.table('conversation').filter({'user_id': user_id}).order_by('stampdate').run(db.c()))
+            result = list(r.table('conversation').filter({'user_id': user_id}).order_by(r.desc('stampdate')).run(db.c()))
         for row in result:
             row['date'] = arrow.get(row.get('stampdate')).datetime
         return result
