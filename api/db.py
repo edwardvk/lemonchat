@@ -1,3 +1,5 @@
+import sys
+sys.path.append('..')
 import rethinkdb as r
 import settings
 print(dir(settings))

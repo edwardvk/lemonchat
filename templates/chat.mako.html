@@ -36,11 +36,11 @@ AUTOBAHN_DEBUG = true;
     
     <div class="chat">
       <div class="chat-header clearfix">
-        <img src="https://s3-us-west-2.amazonaws.com/s.cdpn.io/195612/chat_avatar_01_green.jpg" alt="avatar" />
+        <!-- <img src="https://s3-us-west-2.amazonaws.com/s.cdpn.io/195612/chat_avatar_01_green.jpg" alt="avatar" /> -->
         
         <div class="chat-about">
-          <div class="chat-with">Chat with Vincent Porter</div>
-          <div class="chat-num-messages">already 1 902 messages</div>
+          <div class="chat-with"></div>
+          <div class="chat-num-messages"></div>
         </div>
         <i class="fa fa-star"></i>
       </div> <!-- end chat-header -->
@@ -58,7 +58,7 @@ AUTOBAHN_DEBUG = true;
         <i class="fa fa-file-o"></i> &nbsp;&nbsp;&nbsp;
         <i class="fa fa-file-image-o"></i>
         
-        <button>Send</button>
+        <button type="button" class="send">Send</button>
 
       </div> <!-- end chat-message -->
       
@@ -67,25 +67,25 @@ AUTOBAHN_DEBUG = true;
   </div> <!-- end container -->
 
 <script id="message-template" type="text/x-handlebars-template">
-  <li class="clearfix">
+  <li class="clearfix" data-id="{{message_id}}">
     <div class="message-data align-right">
-      <span class="message-data-time" >{{time}}, Today</span> &nbsp; &nbsp;
-      <span class="message-data-name" >Olia</span> <i class="fa fa-circle me"></i>
+      <span class="message-data-time" ><time class="reltime" datetime="{{stampdate}}"></time></span> &nbsp; &nbsp;
+      <span class="message-data-name" >{{user_id}}</span> <i class="fa fa-circle me"></i>
     </div>
     <div class="message other-message float-right">
-      {{messageOutput}}
+      {{message}}
     </div>
   </li>
 </script>
 
 <script id="message-response-template" type="text/x-handlebars-template">
   <li>
-    <div class="message-data">
-      <span class="message-data-name"><i class="fa fa-circle online"></i> Vincent</span>
-      <span class="message-data-time">{{time}}, Today</span>
+    <div class="message-data" data-id="{{message_id}}">
+      <span class="message-data-name"><i class="fa fa-circle online"></i> {{user_id}}</span>
+      <span class="message-data-time"><time class="reltime" datetime="{{stampdate}}"></time></span>
     </div>
     <div class="message my-message">
-      {{response}}
+      {{message}}
     </div>
   </li>
 </script>
@@ -94,9 +94,18 @@ AUTOBAHN_DEBUG = true;
 <script>
 (function(){
 
-
 var connection = new autobahn.Connection({url: 'wss://masterpenny.com:9000/', realm: 'realm1'});
 var url = "${cherrypy.url()}";
+
+connection.onclose = function (reason, details) {
+    console.log("Connection closed: "+reason);
+    setTimeout(connection.open, 15000);
+}
+
+connection.onopen = function (session) {
+
+    console.log("OPENED!");
+
 
 function updatetime() {
     $("time.reltime").each(function (index) {
@@ -107,150 +116,126 @@ setInterval(updatetime, 60000); // run every so often to update relative time fi
 
 var peopleList = new List('people-list', {
     valueNames: ['name', 'status', {data: ['id']}, { attr: 'src', name: 'avatar' }, { attr: 'datetime', name: 'reltime'}],
-    item: '<li class="clearfix"> <a data-id=""> <img class="avatar" src="" alt="avatar" /><div class="about"> <div class="name"></div> <time class="reltime" datetime=""></time> </div></a></li>'
+    item: '<li class="clearfix conversation" data-id=""> <img class="avatar" src="" alt="avatar" /><div class="about"> <div class="name"></div> <time class="reltime" datetime=""></time> </div></li>'
+});
+var conversation_id = null;
+var activeconversation = null;
+var conversationsubs = [];
+
+var me = Handlebars.compile( $("#message-template").html());
+var them = Handlebars.compile( $("#message-response-template").html());
+
+
+function conversationsummary(args, kwargs, details) {
+    // Summary information regarding this conversation has changed.
+    // alert();
+    // Request the last updates and number of unread messages if not active window
+    console.log("New message, time to update the summary information");
+    $(args).each(function () {
+        conversation_id = this['conversation_id'];
+        $.get("/conversationsummary?user_id=${user_id}&conversation_id="+conversation_id, function (data) {
+            console.log(data);
+            $("#debug"+conversation_id).html("Unread: " +data['unread'] + ' Updated: <time class="reltime" datetime="' + data['updated'] + '"></time>');
+            updatetime();
+        });
+        
+    });
+    
+}
+
+function conversationlist(args) {
+    $.get('/api/conversation/list?user_id=${user_id}&agent=${agent}', function(data) {
+        
+        //unsubscribe from previous conversations
+        $("#conversations").empty();
+        $(conversationsubs).each(function () {
+            console.log("Unsubscribing..")
+            session.unsubscribe(this['_handler']['handler']['value']);
+        });
+        conversationsubs = [];
+
+        if (data.length > 0) {
+            $(data).each(function(index, value) {
+                console.log(value);
+                peopleList.add({id: value.conversation_id, name: value.subject, reltime: value.date});
+                updatetime();
+                topic = 'lemonchat.conversationsummary.'+value['conversation_id'];
+                console.log("Subscribing to conversation (summary) for "+value['conversation_id']);
+                conversationsubs.push(session.subscribe(topic, conversationsummary));
+            });
+            updatetime();
+
+            $('.conversationchange').on('click', function(d) {
+                var conversation_id = $(this).attr('conversation_id');
+                conversationchange(conversation_id);
+            });                    
+            $("#conversationbox").slideDown();
+        }
+        $("#conversations").show();
+    });
+}
+session.subscribe('lemonchat.conversations', conversationlist);
+conversationlist();
+
+function refreshconversation() {
+    $.get("/api/conversation/change?user_id=${user_id}&conversation_id="+conversation_id, function (data) {
+        $('.chat-history ul').empty();
+        $.each(data, function(i, row) {
+            if (row.user_id == '${user_id}') {
+                $('.chat-history ul').append(me(row));
+            } else {
+                $('.chat-history ul').append(them(row));
+            }
+        });
+        updatetime();
+        $('.chat-history').scrollTop($('.chat-history')[0].scrollHeight);
+    });
+}
+
+function changeconversation(id) {
+        if (activeconversation) {
+            console.log("Unsubscribing from "+conversation_id);
+            session.unsubscribe(activeconversation['_handler']['handler']['value']);
+            activeconversation = 0;
+            activeconversation_id = 0;
+        }
+        conversation_id = id;
+        var topic = 'lemonchat.conversation.'+conversation_id;
+        activeconversation = session.subscribe(topic, refreshconversation);
+        $.get("/api/conversation/summary?user_id=${user_id}&conversation_id="+conversation_id, function (data) {
+            $('.chat-num-messages').text(data.unread + ' unread message' + (data.unread == 1 ? '': 's'));
+        });
+        refreshconversation();
+}
+
+$('.people-list').on('click', 'li.conversation', function(evt) {
+        evt.preventDefault();
+        changeconversation($(this).data('id'));
+        var name = $(this).find('.name').text();
+        $('.chat-with').text(name);
 });
 
-$(function() {
-    connection.onopen = function (session) {
-        var conversationsubs = [];
-        
-        function conversationsummary(args, kwargs, details) {
-            // Summary information regarding this conversation has changed.
-            // alert();
-            // Request the last updates and number of unread messages if not active window
-            console.log("New message, time to update the summary information");
-            $(args).each(function () {
-                conversation_id = this['conversation_id'];
-                $.get("/conversationsummary?user_id=${user_id}&conversation_id="+conversation_id, function (data) {
-                    console.log(data);
-                    $("#debug"+conversation_id).html("Unread: " +data['unread'] + ' Updated: <time class="reltime" datetime="' + data['updated'] + '"></time>');
-                    updatetime();
-                });
-                
-            });
-            
+$('#message-to-send').on('keypress', function(e) {
+        var code = (e.keyCode ? e.keyCode : e.which);
+        if (code == 13) {
+            $('button.send').trigger('click');
+            return true;
         }
+});
 
-        function conversationlist(args) {
-            $.get('/api/conversation/list?user_id=${user_id}&agent=${agent}', function(data) {
-                
-                //unsubscribe from previous conversations
-                $("#conversations").empty();
-                $(conversationsubs).each(function () {
-                    console.log("Unsubscribing..")
-                    session.unsubscribe(this['_handler']['handler']['value']);
-                });
-                conversationsubs = [];
-
-                if (data.length > 0) {
-                    $(data).each(function(index, value) {
-                      console.log(value);
-                      peopleList.add({id: value.conversation_id, name: value.subject, reltime: value.date});
-                      updatetime();
-                        topic = 'lemonchat.conversationsummary.'+value['conversation_id'];
-                        console.log("Subscribing to conversation (summary) for "+value['conversation_id']);
-                        conversationsubs.push(session.subscribe(topic, conversationsummary));
-                    });
-                    updatetime();
-
-                    $('.conversationchange').on('click', function(d) {
-                        var conversation_id = $(this).attr('conversation_id');
-                        conversationchange(conversation_id);
-                    });                    
-                    $("#conversationbox").slideDown();
-                }
-                $("#conversations").show();
-            });
-        }
-        session.subscribe('lemonchat.conversations', conversationlist);
-        conversationlist();
-
-        var activeconversation = 0;
-        var activeconversation_id = 0;
-
-        function addnewmessage() {
-            newmessage = $("#newmessage"+activeconversation_id).val();
-            data = {user_id: "${user_id}", conversation_id: activeconversation_id, newmessage: newmessage};
-            $.post(url+"/newmessage", data=data, function(data) {
-
-            });
-            $("#newmessage"+activeconversation_id).val("");
-        }
-
-        function conversationrefresh() {
-            ## Change conversation view. 
-            $("#conversationarea").children().hide();
-            var conversationdivs = $("#conversationarea").find("div#"+activeconversation_id);
-
-            if (!conversationdivs.length) {
-                ## Append conversation area                
-                $("#conversationarea").append('<div id="'+activeconversation_id+'"><div class="previousmessagediv"></div><div class="newmessagediv"><textarea id="newmessage'+activeconversation_id+'" placeholder=\"Add a message to this conversation...\"></textarea><button id="newmessagebutton'+activeconversation_id+'">New Message</button></div></div>');
-
-                $('#newmessagebutton'+activeconversation_id).on('click', addnewmessage);
+$('button.send').on('click', function() {
+    var data = {user_id: "${user_id}", conversation_id: conversation_id, newmessage: $('#message-to-send').val()};
+    $.post("/api/message/new", data=data, function(data) {
+        $('#message-to-send').val('');
+        refreshconversation();
+    });
+});
 
 
-                $(function () {
-                    $("#newmessage"+activeconversation_id).keypress(function (e) {
-                        var code = (e.keyCode ? e.keyCode : e.which);
-                        if (code == 13) {
-                            $('#newmessagebutton'+activeconversation_id).trigger('click');
-                            return true;
-                        }
-                    });
-                });
+};
 
-                conversationdivs = $("#conversationarea").find("div#"+activeconversation_id);
-            }
-            var conversationdiv = $(conversationdivs[0]);
-            var previousmessagesdiv = $(conversationdiv.find('.previousmessagediv')[0]);
-            //conversationdiv.not(".newmessagediv").remove();
-
-            $.get(url+"/conversationchange?conversation_id=" + activeconversation_id + "&user_id=${user_id}", function(data) {
-                previousmessagesdiv.empty();
-                if (data.length > 0) {
-                    $(data).each(function(index, value) {
-                        previousmessagesdiv.append("<div><p>"+value['user_id']+": "+value['message']+"</p></div>");
-                    });           
-                }
-            });
-            conversationdiv.show();
-        }
-
-        function conversationchange(conversation_id) {
-            if (activeconversation) {
-                console.log("Unsubscribing from "+activeconversation_id);
-                session.unsubscribe(activeconversation['_handler']['handler']['value']);
-                activeconversation = 0;
-                activeconversation_id = 0;
-            }
-            activeconversation_id = conversation_id;
-            conversationrefresh();
-            topic = 'lemonchat.conversation.'+conversation_id;
-            activeconversation = session.subscribe(topic, conversationrefresh);
-            console.log("Subscribing to " + activeconversation_id);
-        }
-
-        $("#newconversationbutton").on('click', function(a) {
-            data = {user_id: "${user_id}", subject: $("#subject").val()};
-            $.post(url+"/newconversation", data=data, function(conversation_id) {
-                conversationchange(conversation_id);
-            });    
-        });
-
-        console.log("Connection opened.");
-    }
-
-    connection.onclose = function (reason, details) {
-        console.log("Connection closed: "+reason);
-        setTimeout(connection.open, 15000);
-    }
-
-    connection.open();
-});      
-
-  
+connection.open();
 })();
-
 </script>
 </body>
 </html>
