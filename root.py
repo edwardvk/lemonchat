@@ -18,7 +18,7 @@ TEMPLATES = mako.lookup.TemplateLookup(['templates'])
 
 
 def pickname():
-    words = open("/usr/share/dict/words").read().split("\n")
+    words = open("words.txt").read().split("\n")
     badwords = open("badwords.txt").read().split("\n")
     while True:
         word = random.choice(words)
