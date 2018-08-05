@@ -50,7 +50,7 @@ class Root(object):
             loginauth = str(f.encrypt(json.dumps({'user_id': user_id, 'agent': agent}).encode()), "utf-8")
             cherrypy.response.cookie['loginauth'] = str(loginauth)
         else:
-            input = json.loads(f.decrypt(loginauth.encode()))
+            input = json.loads(str(f.decrypt(loginauth.encode()), 'utf-8'))
             user_id = input['user_id']
             agent = input['agent']
 
