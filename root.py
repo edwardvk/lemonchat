@@ -33,7 +33,7 @@ def pickname():
 
 class Root(object):
     @cherrypy.expose
-    def index(self, loginauth=None, template='index'):
+    def index(self, loginauth=None, template='chat'):
         assert template in ('index', 'chat')
         f = Fernet(settings.secret)  # lemongroup
 
