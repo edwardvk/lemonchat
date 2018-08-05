@@ -2,6 +2,7 @@ import cherrypy
 import arrow
 import rethinkdb as r
 import db
+import doyatelegram
 from typing import Dict, List
 
 import wamp
@@ -65,6 +66,7 @@ class conversation():
     def new(self, user_id: str, subject: str):
         result = r.table('conversation').insert([{'user_id': user_id, 'subject': subject, 'stampdate': arrow.utcnow().datetime}]).run(db.c())
         wamp.publish('conversations')  # @TODO a user should only listen to conversation that involve them
+        doyatelegram.send('lemongroup', "New Conversation. Go to https://masterpenny.com/lemonchat")
         return {"conversation_id": result['generated_keys'][0]}
 
     @cherrypy.expose

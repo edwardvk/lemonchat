@@ -5,3 +5,4 @@ arrow
 rethinkdb
 requests
 cryptography
+python-telegram-bot
