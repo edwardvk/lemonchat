@@ -168,10 +168,11 @@ function conversationlist(args) {
             $('.conversationchange').on('click', function(d) {
                 var conversation_id = $(this).attr('conversation_id');
                 conversationchange(conversation_id);
-            });                    
-            $("#conversationbox").slideDown();
+            });
+
         }
-        $("#conversations").show();
+        if (!conversation_id) $('.people-list li:first').trigger('click');
+
     });
 }
 session.subscribe('lemonchat.conversations', conversationlist);
