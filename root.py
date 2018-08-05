@@ -45,14 +45,13 @@ class Root(object):
         if not loginauth:
             # Assume an anonymous user, create a random user name for them.
             user_id = pickname()
-            agent = 0
-            
+            agent = 0            
             loginauth = str(f.encrypt(json.dumps({'user_id': user_id, 'agent': agent}).encode()), "utf-8")
-            cherrypy.response.cookie['loginauth'] = str(loginauth)
-        else:
-            input = json.loads(f.decrypt(loginauth.encode()))
-            user_id = input['user_id']
-            agent = input['agent']
+            
+        cherrypy.response.cookie['loginauth'] = str(loginauth)
+        input = json.loads(str(f.decrypt(loginauth.encode()), 'utf-8'))
+        user_id = input['user_id']
+        agent = input['agent']
 
         template = TEMPLATES.get_template(template + ".mako.html")
         return template.render(user_id=user_id, agent=agent)
