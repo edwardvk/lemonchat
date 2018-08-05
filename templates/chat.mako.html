@@ -118,7 +118,7 @@ setInterval(updatetime, 60000); // run every so often to update relative time fi
 
 var peopleList = new List('people-list', {
     valueNames: ['name', 'status', {data: ['id']}, { attr: 'src', name: 'avatar' }, { attr: 'datetime', name: 'reltime'}],
-    item: '<li class="clearfix conversation" data-id=""> <img class="avatar" src="" alt="avatar" /><div class="about"> <div class="name"></div> <time class="reltime" datetime=""></time> </div></li>'
+    item: '<li class="clearfix conversation" data-id=""> <img class="avatar" src="" alt="avatar" /><div class="about"> <div class="name"></div> <time class="reltime" datetime=""></time> <span class="unread-count"></span></div></li>'
 });
 var conversation_id = null;
 var activeconversation = null;
@@ -134,13 +134,17 @@ function conversationsummary(args, kwargs, details) {
     // Request the last updates and number of unread messages if not active window
     console.log("New message, time to update the summary information");
     $(args).each(function () {
-        conversation_id = this['conversation_id'];
-        $.get("/conversationsummary?user_id=${user_id}&conversation_id="+conversation_id, function (data) {
+        var id = this['conversation_id'];
+        $.get("/api/conversation/summary?user_id=${user_id}&conversation_id="+id, function (data) {
             console.log(data);
-            $("#debug"+conversation_id).html("Unread: " +data['unread'] + ' Updated: <time class="reltime" datetime="' + data['updated'] + '"></time>');
+            var t =$('.people-list li[id="'+id+'"]');
+            t.find('.reltime').prop('datetime', data.updated);
+            t.find('.unread-count').text('');
+            if (data.unread) {
+                t.find('.unread-count').text('(' + data.unread + ')');
+            } 
             updatetime();
         });
-        
     });
     
 }
