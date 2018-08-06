@@ -65,6 +65,7 @@ AUTOBAHN_DEBUG = true;
                 
         <i class="fa fa-file-o"></i> &nbsp;&nbsp;&nbsp;
         <i class="fa fa-file-image-o"></i>
+        <button type="button" class="vidyoio">Video</button>
         
         <button type="button" class="send">Send</button>
 
@@ -252,6 +253,11 @@ $('button.send').on('click', function() {
         refreshconversation();
     });
 });
+$('button.vidyoio').on('click', function() {
+    console.log("Botton")
+    window.open("https://vidyoio.nitric.co.za?name=${user_id}&room="+conversation_id); 
+});
+
 
 
 };
