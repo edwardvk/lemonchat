@@ -254,8 +254,11 @@ $('button.send').on('click', function() {
     });
 });
 $('button.vidyoio').on('click', function() {
-    console.log("Botton")
+    var data = {user_id: "${user_id}", conversation_id: conversation_id, newmessage: "${user_id} requested video conversation."};
     window.open("https://vidyoio.nitric.co.za?name=${user_id}&room="+conversation_id); 
+    $.post("/api/message/new", data, function(data) {
+        refreshconversation();
+    });
 });
 
 
