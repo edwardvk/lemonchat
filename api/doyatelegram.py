@@ -35,7 +35,7 @@ def send(channel, text):
     global bot
     if not bot: connect()
     try:
-        response = bot.sendMessage(channel, text)
+        response = bot.sendMessage(channel, text, timeout=3)
     except:
         # Try resetting the connection...
         bot = telegram.Bot(token=settings.doyatelegram)

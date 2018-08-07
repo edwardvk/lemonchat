@@ -79,14 +79,12 @@ class conversation():
             result = list(r.table('conversation').filter({'user_id': user_id}).order_by(r.desc('stampdate')).run(db.c()))
         for row in result:
             row['date'] = arrow.get(row.get('stampdate')).datetime
+            summary = self.summary(user_id=user_id, conversation_id=row['conversation_id'])
+            row['unread'] = summary['unread']
+            row['updated'] = summary['updated']
         return result
 
-    @cherrypy.expose
-    @cherrypy.tools.json_out()
-    def summary(self, user_id: str, conversation_id: str):
-        """Returns only the last updated datetime and the number of messages unread"""
-        updated = r.table('message').filter({'conversation_id': conversation_id}).max('stampdate').run(db.c()).get('stampdate')
-
+    def countunread(self, user_id: str, conversation_id: str):
         # Now determine how many unread messages there are.,
         lastseen_message_ids = list(r.table('lastseen').filter({'conversation_id': conversation_id, 'user_id': user_id}).run(db.c()))
         if lastseen_message_ids:
@@ -100,7 +98,18 @@ class conversation():
             unread = len(message_ids) - pos - 1
         else:
             unread = 0
-        return {'updated': updated, 'unread': unread}
+        return unread
+
+    @cherrypy.expose
+    @cherrypy.tools.json_out()
+    def summary(self, user_id: str, conversation_id: str):
+        """Returns only the last updated datetime and the number of messages unread"""
+        try:
+            updated = r.table('message').filter({'conversation_id': conversation_id}).has_fields('stampdate').max('stampdate').run(db.c()).get('stampdate')
+        except Exception as e:
+            updated = None
+
+        return {'updated': updated, 'unread': self.countunread(user_id, conversation_id)}
 
     @cherrypy.expose
     @cherrypy.tools.json_out()

@@ -106,6 +106,10 @@ AUTOBAHN_DEBUG = true;
 var connection = new autobahn.Connection({url: 'wss://masterpenny.com:9000/', realm: 'realm1'});
 var url = "${cherrypy.url()}";
 
+var updatetime_id = 0;
+var pingautobahn_id = 0;
+
+
 connection.onclose = function (reason, details) {
     console.log("Connection closed: "+reason);
     setTimeout(connection.open, 15000);
@@ -120,20 +124,55 @@ function updatetime() {
     $("time.reltime").each(function (index) {
         $(this).html(moment($(this).attr('datetime')).fromNow());
     });
+    // Test autobahn is happy
 }
-setInterval(updatetime, 60000); // run every so often to update relative time fields.
+
+if (updatetime_id) clearInterval(updatetime_id);
+updatetime_id = setInterval(updatetime, 60000); // run every so often to update relative time fields.
+
+
+function pingautobahn() {
+    try {
+        // Do something with autobahn
+        session.publish('com.myapp.hello', ['Hello, world!']); //Really doesn't matter.
+        //console.log("Autobahn is happy.");
+    }
+    catch (e) {
+        console.log("Re-opening connection because: "+e);
+        connection.open();
+    }
+}
+if (pingautobahn_id) clearInterval(pingautobahn_id);
+pingautobahn_id = setInterval(pingautobahn, 59000);
+
 
 var peopleList = new List('people-list', {
-    valueNames: ['name', 'status', {data: ['id']}, { attr: 'src', name: 'avatar' }, { attr: 'datetime', name: 'reltime'}],
-    item: '<li class="clearfix conversation" data-id=""> <img class="avatar" src="" alt="avatar" /><div class="about"> <div class="name"></div> <time class="reltime" datetime=""></time> <span class="unread-count"></span></div></li>'
+    valueNames: ['name', 'status', {data: ['id']}, { attr: 'src', name: 'avatar' }, { attr: 'datetime', name: 'reltime'}, { attr: 'unreadcount', name: 'unreadcount'}],
+    //<img class="avatar" src="" alt="avatar" />
+    item: '<li class="clearfix conversation" data-id=""> <div class="about"> <div class="name"></div> <time class="reltime" datetime=""></time> <span class="unreadcount"></span></div></li>'
 });
 var conversation_id = null;
 var activeconversation = null;
 var conversationsubs = [];
+var totalunread = 0;
 
 var me = Handlebars.compile( $("#message-template").html());
 var them = Handlebars.compile( $("#message-response-template").html());
 
+function totalunreadsum() {
+        // Get the total unread count.
+        totalunread = 0;
+        $('.unreadcount').each(function (index, value) {
+            if ($(this).attr('unread')) {
+                totalunread = totalunread + Math.floor($(this).attr('unread'));
+            }
+        })
+        if (totalunread) {
+            document.title = "(" + totalunread + ") Lemon Chat"
+        } else {
+            document.title = "Lemon Chat"
+        }        
+}
 
 function conversationsummary(args, kwargs, details) {
     // Summary information regarding this conversation has changed.
@@ -146,12 +185,15 @@ function conversationsummary(args, kwargs, details) {
             console.log(data);
             var t =$('.people-list li[data-id="'+id+'"]');
             t.find('.reltime').prop('datetime', data.updated);
-            t.find('.unread-count').text('');
+            t.find('.unreadcount').text('');
             if (data.unread) {
-                t.find('.unread-count').text('(' + data.unread + ')');
+                t.find('.unreadcount').text('(' + data.unread + ')');
             } 
+            t.find('.unreadcount').attr('unread', data.unread);
             updatetime();
+            totalunreadsum();
         });
+
     });
     
 }
@@ -170,7 +212,12 @@ function conversationlist(args) {
         if (data.length > 0) {
             $(data).each(function(index, value) {
                 console.log(value);
-                peopleList.add({id: value.conversation_id, name: value.subject, reltime: value.date});
+                if (value.updated) {
+                    date = value.updated;
+                } else {
+                    date = value.date;
+                }
+                peopleList.add({id: value.conversation_id, name: value.subject, reltime: date, unreadcount: '1'});
                 updatetime();
                 topic = 'lemonchat.conversationsummary.'+value['conversation_id'];
                 console.log("Subscribing to conversation (summary) for "+value['conversation_id']);
@@ -248,10 +295,8 @@ $('#message-to-send').on('keypress', function(e) {
 
 $('button.send').on('click', function() {
     var data = {user_id: "${user_id}", conversation_id: conversation_id, newmessage: $('#message-to-send').val()};
-    $.post("/api/message/new", data, function(data) {
-        $('#message-to-send').val('');
-        refreshconversation();
-    });
+    $.post("/api/message/new", data);
+    $('#message-to-send').val('');
 });
 $('button.vidyoio').on('click', function() {
     var data = {user_id: "${user_id}", conversation_id: conversation_id, newmessage: "${user_id} requested video conversation, click on the Video link below."};

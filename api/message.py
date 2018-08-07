@@ -4,6 +4,7 @@ import arrow
 import db
 import wamp
 import doyatelegram
+import telegram
 from typing import Dict, List
 
 
@@ -59,5 +60,9 @@ class message():
         result = r.table('message').insert([{'user_id': user_id, 'conversation_id': conversation_id, 'message': newmessage, 'stampdate': arrow.utcnow().datetime}]).run(db.c())
         wamp.publish('conversation.%s' % (conversation_id), {'conversation_id': conversation_id})
         wamp.publish('conversationsummary.%s' % (conversation_id), {'conversation_id': conversation_id})
-        doyatelegram.send('lemongroup', "New Message. Go to https://masterpenny.com/lemonchat")
+        try:
+            doyatelegram.send('lemongroup', "New Message. Go to https://masterpenny.com/lemonchat")
+        except telegram.error.TimedOut:
+            pass
+
         return result['generated_keys'][0]  # message_id
