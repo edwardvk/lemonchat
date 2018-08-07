@@ -159,6 +159,8 @@ var totalunread = 0;
 var me = Handlebars.compile( $("#message-template").html());
 var them = Handlebars.compile( $("#message-response-template").html());
 
+
+
 function totalunreadsum() {
         // Get the total unread count.
         totalunread = 0;
@@ -261,6 +263,10 @@ function refreshconversation() {
         $('.chat-history').scrollTop($('.chat-history')[0].scrollHeight);
     });
 }
+window.onfocus = function() {
+    console.log("Focus");
+    refreshconversation();
+}
 
 function changeconversation(id) {
         if (activeconversation) {
@@ -275,8 +281,11 @@ function changeconversation(id) {
         $.get("/api/conversation/summary?user_id=${user_id}&conversation_id="+conversation_id, function (data) {
             $('.chat-num-messages').text(data.unread + ' unread message' + (data.unread == 1 ? '': 's'));
         });
-        refreshconversation();
+        if (document.hasFocus()) {
+            refreshconversation();
+        }
 }
+
 
 $('.people-list').on('click', 'li.conversation', function(evt) {
         evt.preventDefault();
