@@ -66,7 +66,7 @@ class conversation():
     def new(self, user_id: str, subject: str):
         result = r.table('conversation').insert([{'user_id': user_id, 'subject': subject, 'stampdate': arrow.utcnow().datetime}]).run(db.c())
         wamp.publish('conversations')  # @TODO a user should only listen to conversation that involve them
-        doyatelegram.send('lemongroup', "New Conversation. Go to https://masterpenny.com/lemonchat")
+        doyatelegram.send('lemongroup', "New Conversation: %s. Go to https://masterpenny.com/lemonchat" % (subject,))
         return {"conversation_id": result['generated_keys'][0]}
 
     @cherrypy.expose

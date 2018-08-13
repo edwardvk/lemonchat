@@ -60,9 +60,10 @@ class message():
     def new(self, user_id, conversation_id, newmessage):
         try:
             previousmessage = r.table('message').filter({'conversation_id': conversation_id}).max('stampdate').run(db.c())
-            
         except r.errors.ReqlNonExistenceError:
             previousmessage = None
+
+        conversation = r.table('conversation').filter({'conversation_id': conversation_id}).run(db.c())
 
         result = r.table('message').insert([{'user_id': user_id, 'conversation_id': conversation_id, 'message': newmessage, 'stampdate': arrow.utcnow().datetime}]).run(db.c())
         wamp.publish('conversation.%s' % (conversation_id), {'conversation_id': conversation_id})
@@ -70,7 +71,7 @@ class message():
         
         if arrow.utcnow().datetime - arrow.get(previousmessage['stampdate']).datetime > datetime.timedelta(minutes=15):
             try:
-                doyatelegram.send('lemongroup', "New Message to old Conversation. Go to https://masterpenny.com/lemonchat")
+                doyatelegram.send('lemongroup', "New Message to old Conversation: %s. Go to https://masterpenny.com/lemonchat" % (conversation['subject']))
             except telegram.error.TimedOut:
                 pass
 
