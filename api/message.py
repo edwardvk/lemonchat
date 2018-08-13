@@ -5,6 +5,7 @@ import db
 import wamp
 import doyatelegram
 import telegram
+import datetime
 from typing import Dict, List
 
 
@@ -57,12 +58,20 @@ class message():
     @cherrypy.expose
     @cherrypy.tools.json_out()
     def new(self, user_id, conversation_id, newmessage):
+        try:
+            previousmessage = r.table('message').filter({'conversation_id': conversation_id}).max('stampdate').run(db.c())
+            
+        except r.errors.ReqlNonExistenceError:
+            previousmessage = None
+
         result = r.table('message').insert([{'user_id': user_id, 'conversation_id': conversation_id, 'message': newmessage, 'stampdate': arrow.utcnow().datetime}]).run(db.c())
         wamp.publish('conversation.%s' % (conversation_id), {'conversation_id': conversation_id})
         wamp.publish('conversationsummary.%s' % (conversation_id), {'conversation_id': conversation_id})
-        try:
-            doyatelegram.send('lemongroup', "New Message. Go to https://masterpenny.com/lemonchat")
-        except telegram.error.TimedOut:
-            pass
+        
+        if arrow.utcnow().datetime - arrow.get(previousmessage['stampdate']).datetime > datetime.timedelta(minutes=15):
+            try:
+                doyatelegram.send('lemongroup', "New Message to old Conversation. Go to https://masterpenny.com/lemonchat")
+            except telegram.error.TimedOut:
+                pass
 
         return result['generated_keys'][0]  # message_id
